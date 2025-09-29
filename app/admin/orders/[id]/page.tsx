@@ -8,60 +8,15 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Separator } from "@/components/ui/separator"
-import { subscribeToOrders, updateOrder, type Order, type OrderItem } from "@/lib/firestore"
+import { subscribeToOrder, updateOrder, type Order } from "@/lib/firestore"
 import ProtectedRoute from "@/components/ProtectedRoute"
-
-const ORDER_STATUS_STEPS: Array<{ value: Order["status"]; label: string; description: string }> = [
-  { value: "pending", label: "Pendiente", description: "Pedido recibido, a la espera de confirmación." },
-  { value: "confirmed", label: "Confirmado", description: "Confirmamos disponibilidad y cantidades." },
-  { value: "preparing", label: "Preparando", description: "Seleccionando y acondicionando los productos." },
-  { value: "shipped", label: "En tránsito", description: "Pedido despachado hacia el cliente." },
-  { value: "delivered", label: "Entregado", description: "Pedido entregado al cliente." },
-]
-
-const getOrderStatusLabel = (status: Order["status"]): string => {
-  switch (status) {
-    case "delivered":
-      return "Entregado"
-    case "shipped":
-      return "En tránsito"
-    case "confirmed":
-      return "Confirmado"
-    case "preparing":
-      return "Preparando"
-    case "cancelled":
-      return "Cancelado"
-    default:
-      return "Pendiente"
-  }
-}
-
-const getOrderStatusBadgeClasses = (status: Order["status"]): string => {
-  switch (status) {
-    case "delivered":
-      return "bg-green-100 text-green-700"
-    case "shipped":
-      return "bg-blue-100 text-blue-700"
-    case "confirmed":
-      return "bg-purple-100 text-purple-700"
-    case "preparing":
-      return "bg-yellow-100 text-yellow-700"
-    case "cancelled":
-      return "bg-red-100 text-red-700"
-    default:
-      return "bg-gray-100 text-gray-700"
-  }
-}
-
-const getStatusStepIndex = (status: Order["status"]): number => {
-  if (status === "cancelled") return -1
-  return ORDER_STATUS_STEPS.findIndex((s) => s.value === status)
-}
-
-const calculateOrderTotals = (items: OrderItem[]) => {
-  const subtotal = items.reduce((sum, it) => sum + it.price * it.quantity, 0)
-  return { subtotal, total: subtotal }
-}
+import {
+  calculateOrderTotals,
+  getOrderStatusBadgeClasses,
+  getOrderStatusLabel,
+  getOrderStatusSteps,
+  getStatusStepIndex,
+} from "@/lib/orders/utils"
 
 export default function AdminOrderDetailPage() {
   const params = useParams<{ id: string }>()
@@ -69,6 +24,8 @@ export default function AdminOrderDetailPage() {
 
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
+
+  const statusSteps = useMemo(() => getOrderStatusSteps("admin"), [])
 
   const handleAdvance = async () => {
     if (!order) return
@@ -84,8 +41,8 @@ export default function AdminOrderDetailPage() {
     if (!next) return
     try {
       await updateOrder(order.id, { status: next })
-    } catch (e) {
-      console.error("Error advancing status", e)
+    } catch (error) {
+      console.error("Error advancing status", error)
       alert("No se pudo actualizar el estado del pedido")
     }
   }
@@ -94,19 +51,20 @@ export default function AdminOrderDetailPage() {
     if (!order || order.status === "delivered") return
     try {
       await updateOrder(order.id, { status: "cancelled" })
-    } catch (e) {
-      console.error("Error cancelling order", e)
+    } catch (error) {
+      console.error("Error cancelling order", error)
       alert("No se pudo cancelar el pedido")
     }
   }
 
   useEffect(() => {
     if (!params?.id) return
-    const unsubscribe = subscribeToOrders((orders) => {
-      const match = orders.find((o) => o.id === params.id) ?? null
-      setOrder(match)
+
+    const unsubscribe = subscribeToOrder(params.id, (nextOrder) => {
+      setOrder(nextOrder)
       setLoading(false)
     })
+
     return () => unsubscribe()
   }, [params?.id])
 
@@ -146,7 +104,7 @@ export default function AdminOrderDetailPage() {
       <div className="container mx-auto py-10 space-y-6">
         <div className="flex items-center justify-between">
           <div className="space-y-2">
-            <Button variant="ghost" className="-ml-2 text-slate-600" onClick={() => router.push("/admin/orders")}>
+            <Button variant="ghost" className="-ml-2 text-slate-600" onClick={() => router.push("/admin/orders")}> 
               <ArrowLeft className="mr-2 h-4 w-4" /> Volver a pedidos
             </Button>
             <div>
@@ -187,7 +145,7 @@ export default function AdminOrderDetailPage() {
                 <div className="p-2 bg-blue-50 rounded-xl">
                   <Timer size={20} className="text-blue-600" />
                 </div>
-                <span>Línea de tiempo</span>
+                <span>Linea de tiempo</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-6">
@@ -198,7 +156,7 @@ export default function AdminOrderDetailPage() {
               ) : (
                 <div className="relative pl-8">
                   <div className="absolute left-[11px] top-2 bottom-2 w-px bg-slate-200" aria-hidden />
-                  {ORDER_STATUS_STEPS.map((step, index) => {
+                  {statusSteps.map((step, index) => {
                     const isCompleted = timelineIndex > index
                     const isCurrent = timelineIndex === index
                     return (
@@ -238,7 +196,7 @@ export default function AdminOrderDetailPage() {
               </div>
               <div className="flex justify-between">
                 <span>Cantidad total</span>
-                <span className="font-semibold text-slate-900">{order.items.reduce((s, it) => s + it.quantity, 0)}</span>
+                <span className="font-semibold text-slate-900">{order.items.reduce((sum, item) => sum + item.quantity, 0)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Subtotal estimado</span>
@@ -338,7 +296,7 @@ export default function AdminOrderDetailPage() {
                     </div>
                   </>
                 ) : (
-                  <p className="text-slate-500">Sin información de contacto registrada.</p>
+                  <p className="text-slate-500">Sin informacion de contacto registrada.</p>
                 )}
               </CardContent>
             </Card>
@@ -348,4 +306,3 @@ export default function AdminOrderDetailPage() {
     </ProtectedRoute>
   )
 }
-

@@ -334,6 +334,28 @@ export const subscribeToOrders = (callback: (orders: Order[]) => void) => {
 }
 
 
+export const subscribeToOrder = (orderId: string, callback: (order: Order | null) => void) => {
+  const orderRef = doc(db, "orders", orderId)
+
+  return onSnapshot(
+    orderRef,
+    (snapshot) => {
+      if (!snapshot.exists()) {
+        callback(null)
+        return
+      }
+
+      const order = mapOrder(snapshot.id, snapshot.data())
+      callback(order)
+    },
+    (error) => {
+      console.error("Error subscribing to order:", error)
+      callback(null)
+    },
+  )
+}
+
+
 export const getUserOrders = async (userId: string): Promise<Order[]> => {
   const q = query(collection(db, "orders"), where("userId", "==", userId), orderBy("createdAt", "desc"))
   const snapshot = await getDocs(q)
@@ -343,10 +365,10 @@ export const getUserOrders = async (userId: string): Promise<Order[]> => {
 }
 
 export const subscribeToUserOrders = (userId: string, callback: (orders: Order[]) => void) => {
-  const withOrderBy = query(collection(db, "orders"), where("userId", "==", userId), orderBy("createdAt", "desc"))
+  const ordersQuery = query(collection(db, "orders"), where("userId", "==", userId), orderBy("createdAt", "desc"))
 
-  let unsub = onSnapshot(
-    withOrderBy,
+  return onSnapshot(
+    ordersQuery,
     (snapshot) => {
       const orders = snapshot.docs
         .map((docSnapshot) => mapOrder(docSnapshot.id, docSnapshot.data()))
@@ -354,31 +376,15 @@ export const subscribeToUserOrders = (userId: string, callback: (orders: Order[]
       callback(orders)
     },
     (error) => {
-      console.error("Error subscribing to user orders (will try fallback without orderBy):", error)
-      // Fallback without orderBy to avoid composite index requirement
-      try {
-        unsub()
-      } catch {}
-      const withoutOrderBy = query(collection(db, "orders"), where("userId", "==", userId))
-      unsub = onSnapshot(
-        withoutOrderBy,
-        (snapshot2) => {
-          const orders = snapshot2.docs
-            .map((docSnapshot) => mapOrder(docSnapshot.id, docSnapshot.data()))
-            .filter((order): order is Order => order !== null)
-          // Manually sort by createdAt desc if available
-          orders.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-          callback(orders)
-        },
-        (error2) => {
-          console.error("Fallback user orders subscription failed:", error2)
-          callback([])
-        },
-      )
+      console.error("Error subscribing to user orders:", error)
+      if ((error as { code?: string }).code === "failed-precondition") {
+        console.warn(
+          "Firestore index required: create a composite index on orders (userId asc, createdAt desc) to enable sorted queries.",
+        )
+      }
+      callback([])
     },
   )
-
-  return () => unsub()
 }
 
 export const createOrder = async (data: OrderInput): Promise<string> => {

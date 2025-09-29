@@ -1,4 +1,5 @@
 import Link from "next/link"
+import Image from "next/image"
 import { Facebook, Instagram, Twitter, Linkedin, Mail, Phone, MapPin, Award } from "lucide-react"
 
 export default function Footer() {
@@ -35,11 +36,16 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12">
           <div className="lg:col-span-2">
-            <div className="flex items-center space-x-3 mb-8">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center">
-                <span className="text-white font-bold text-lg">PA</span>
-              </div>
-              <span className="text-xl font-semibold">Pescadería Argentina</span>
+            <div className="flex items-center space-x-4 mb-6">
+              <Image
+                src="/epuyen-logo.png"
+                alt="Epuyen Congelados"
+                width={76}
+                height={76}
+                className="h-24 w-auto object-contain"
+                priority
+              />
+              <span className="text-xl font-semibold">Epuyen Congelados</span>
             </div>
             <p className="text-neutral-400 mb-8 text-pretty leading-relaxed">
               Distribuidores especializados en pescados y derivados para todo el país. Calidad y frescura garantizada

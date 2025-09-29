@@ -27,75 +27,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/contexts/AuthContext"
 import { subscribeToUserOrders, type Order } from "@/lib/firestore"
-
-const ORDER_STATUS_STEPS: Array<{ value: Order["status"]; label: string; description: string }> = [
-  {
-    value: "pending",
-    label: "Pedido recibido",
-    description: "Recibimos tu pedido y estamos verificando los productos.",
-  },
-  {
-    value: "confirmed",
-    label: "Pedido confirmado",
-    description: "Nuestro equipo confirmo la disponibilidad de cada item.",
-  },
-  {
-    value: "preparing",
-    label: "Preparando pedido",
-    description: "Estamos seleccionando y preparando tus productos frescos.",
-  },
-  {
-    value: "shipped",
-    label: "Pedido en camino",
-    description: "Tu pedido fue despachado y esta en camino a tu direccion.",
-  },
-  {
-    value: "delivered",
-    label: "Pedido entregado",
-    description: "Tu pedido llego a destino.",
-  },
-]
-
-const getOrderStatusLabel = (status: Order["status"]): string => {
-  switch (status) {
-    case "delivered":
-      return "Entregado"
-    case "shipped":
-      return "En transito"
-    case "confirmed":
-      return "Confirmado"
-    case "preparing":
-      return "Preparando"
-    case "cancelled":
-      return "Cancelado"
-    default:
-      return "Pendiente"
-  }
-}
-
-const getOrderStatusBadgeClasses = (status: Order["status"]): string => {
-  switch (status) {
-    case "delivered":
-      return "bg-green-100 text-green-700"
-    case "shipped":
-      return "bg-blue-100 text-blue-700"
-    case "confirmed":
-      return "bg-purple-100 text-purple-700"
-    case "preparing":
-      return "bg-yellow-100 text-yellow-700"
-    case "cancelled":
-      return "bg-red-100 text-red-700"
-    default:
-      return "bg-gray-100 text-gray-700"
-  }
-}
-
-const getStatusStepIndex = (status: Order["status"]): number => {
-  if (status === "cancelled") {
-    return -1
-  }
-  return ORDER_STATUS_STEPS.findIndex((step) => step.value === status)
-}
+import {
+  calculateOrderTotals,
+  getOrderStatusBadgeClasses,
+  getOrderStatusLabel,
+  getOrderStatusSteps,
+  getStatusStepIndex,
+} from "@/lib/orders/utils"
 
 export default function PortalPage() {
   const { user, userProfile, logout, loading } = useAuth()
@@ -204,16 +142,20 @@ export default function PortalPage() {
     },
   ]
 
-  const recentOrders = orders.slice(0, 3).map((order) => ({
-    id: order.id,
-    date: order.createdAt.toLocaleDateString(),
-    status: getOrderStatusLabel(order.status),
-    statusColor: getOrderStatusBadgeClasses(order.status),
-    total: `$${order.totalAmount.toLocaleString()}`,
-    items: `${order.items.length} producto${order.items.length === 1 ? '' : 's'}`
-  }))
+  const recentOrders = orders.slice(0, 3).map((order) => {
+    const totals = calculateOrderTotals(order.items)
+    return {
+      id: order.id,
+      date: order.createdAt.toLocaleDateString(),
+      status: getOrderStatusLabel(order.status),
+      statusColor: getOrderStatusBadgeClasses(order.status),
+      total: `$${totals.total.toLocaleString()}`,
+      items: `${order.items.length} producto${order.items.length === 1 ? '' : 's'}`
+    }
+  })
 
   const latestOrder = orders[0] ?? null
+  const statusSteps = getOrderStatusSteps("portal")
   const latestOrderStep = latestOrder ? getStatusStepIndex(latestOrder.status) : -1
   const isLatestOrderCancelled = latestOrder?.status === "cancelled"
 
@@ -233,7 +175,7 @@ export default function PortalPage() {
       href: "/carrito/finalizar",
     },
     {
-      title: "Ver CatÃ¡logo",
+      title: "Ver Catálogo",
       icon: FileText,
       color: "bg-green-600 hover:bg-green-700",
       description: "Explorar productos",
@@ -267,7 +209,7 @@ export default function PortalPage() {
                   <Bell size={24} />
                 </div>
                 <div className="text-right">
-                  <p className="text-sm text-blue-100">Ãšltima conexiÃ³n</p>
+                  <p className="text-sm text-blue-100">Última conexión</p>
                   <p className="font-semibold">{currentTime.toLocaleTimeString()}</p>
                 </div>
               </div>
@@ -416,7 +358,7 @@ export default function PortalPage() {
                     ) : (
                       <div className="relative pl-6">
                         <div className="absolute left-[11px] top-2 bottom-2 w-px bg-slate-200"></div>
-                        {ORDER_STATUS_STEPS.map((step, index) => {
+                        {statusSteps.map((step, index) => {
                           const isCompleted = latestOrderStep > index
                           const isCurrent = latestOrderStep === index
                           return (
@@ -572,7 +514,7 @@ export default function PortalPage() {
                   className="w-full justify-start h-12 hover:bg-slate-50 rounded-xl font-medium transition-all duration-200"
                 >
                   <Settings size={18} className="mr-3" />
-                  ConfiguraciÃ³n
+                  Configuración
                   <ChevronRight size={16} className="ml-auto" />
                 </Button>
                 <Button
@@ -598,7 +540,7 @@ export default function PortalPage() {
                     onClick={handleLogout}
                   >
                     <LogOut size={18} className="mr-3" />
-                    Cerrar SesiÃ³n
+                    Cerrar Sesión
                   </Button>
                 </div>
               </CardContent>
@@ -636,7 +578,7 @@ export default function PortalPage() {
                   </div>
                   <div>
                     <div className="flex justify-between text-sm mb-2">
-                      <span className="font-semibold text-slate-700">SatisfacciÃ³n</span>
+                      <span className="font-semibold text-slate-700">Satisfacción</span>
                       <span className="font-bold text-blue-600">92%</span>
                     </div>
                     <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
@@ -667,6 +609,9 @@ export default function PortalPage() {
     </div>
   )
 }
+
+
+
 
 
 

@@ -9,40 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { ChevronRight, Package } from "lucide-react"
 import { subscribeToUserOrders, type Order } from "@/lib/firestore"
 import { useAuth } from "@/contexts/AuthContext"
-
-const getOrderStatusLabel = (status: Order["status"]): string => {
-  switch (status) {
-    case "delivered":
-      return "Entregado"
-    case "shipped":
-      return "En transito"
-    case "confirmed":
-      return "Confirmado"
-    case "preparing":
-      return "Preparando"
-    case "cancelled":
-      return "Cancelado"
-    default:
-      return "Pendiente"
-  }
-}
-
-const getOrderStatusBadgeClasses = (status: Order["status"]): string => {
-  switch (status) {
-    case "delivered":
-      return "bg-green-100 text-green-700"
-    case "shipped":
-      return "bg-blue-100 text-blue-700"
-    case "confirmed":
-      return "bg-purple-100 text-purple-700"
-    case "preparing":
-      return "bg-yellow-100 text-yellow-700"
-    case "cancelled":
-      return "bg-red-100 text-red-700"
-    default:
-      return "bg-gray-100 text-gray-700"
-  }
-}
+import { getOrderStatusBadgeClasses, getOrderStatusLabel } from "@/lib/orders/utils"
 
 export default function OrdersListPage() {
   const router = useRouter()

@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Eye, CheckCircle, XCircle, Truck, MapPin, Phone, Mail, User, Package, Check } from "lucide-react"
 import { type Order, subscribeToOrders, updateOrder } from "@/lib/firestore"
+import { getOrderStatusBadgeClasses, getOrderStatusLabel } from "@/lib/orders/utils"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 
@@ -39,47 +40,6 @@ const ORDER_STATUS_STEPS: Array<{ value: Order["status"]; label: string; descrip
     description: "Pedido entregado al cliente.",
   },
 ]
-
-const getOrderStatusLabel = (status: Order["status"]): string => {
-  switch (status) {
-    case "delivered":
-      return "Entregado"
-    case "shipped":
-      return "En transito"
-    case "confirmed":
-      return "Confirmado"
-    case "preparing":
-      return "Preparando"
-    case "cancelled":
-      return "Cancelado"
-    default:
-      return "Pendiente"
-  }
-}
-
-const getOrderStatusBadgeClasses = (status: Order["status"]): string => {
-  switch (status) {
-    case "delivered":
-      return "bg-green-100 text-green-700"
-    case "shipped":
-      return "bg-blue-100 text-blue-700"
-    case "confirmed":
-      return "bg-purple-100 text-purple-700"
-    case "preparing":
-      return "bg-yellow-100 text-yellow-700"
-    case "cancelled":
-      return "bg-red-100 text-red-700"
-    default:
-      return "bg-gray-100 text-gray-700"
-  }
-}
-
-const getStatusStepIndex = (status: Order["status"]): number => {
-  if (status === "cancelled") {
-    return -1
-  }
-  return ORDER_STATUS_STEPS.findIndex((step) => step.value === status)
-}
 
 export default function AdminOrdersPage() {
   const { userProfile } = useAuth()

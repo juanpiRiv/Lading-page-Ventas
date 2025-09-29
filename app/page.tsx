@@ -2,7 +2,6 @@ import Hero from "@/components/Hero"
 import ProductsSection from "@/components/ProductsSection"
 import MapSection from "@/components/MapSection"
 import ContactForm from "@/components/ContactForm"
-import Footer from "@/components/Footer"
 
 export default function Home() {
   return (
@@ -11,7 +10,6 @@ export default function Home() {
       <ProductsSection />
       <MapSection />
       <ContactForm />
-      <Footer />
     </main>
   )
 }

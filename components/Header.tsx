@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { Menu, X, User, ShoppingCart } from "lucide-react"
 
 export default function Header() {
@@ -10,7 +11,7 @@ export default function Header() {
   const navigation = [
     { name: "Inicio", href: "/" },
     { name: "Productos", href: "/productos" },
-    { name: "Distribución", href: "#distribucion" },
+    { name: "Nosotros", href: "/nosotros" },
     { name: "Contacto", href: "#contacto" },
   ]
 
@@ -20,10 +21,15 @@ export default function Header() {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-3 group">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center transition-transform group-hover:scale-105">
-                <span className="text-white font-bold text-sm">Epuyen</span>
-              </div>
-              <span className="text-lg font-semibold text-neutral-900 transition-colors">Frigorifico Epuyen</span>
+              <Image
+                src="/epuyen-logo.png"
+                alt="Epuyen Congelados"
+                width={40}
+                height={40}
+                className="h-17 w-auto object-contain transition-transform group-hover:scale-105"
+                priority
+              />
+              <span className="flex items-center space-x-2 px-3 py-2 rounded-lg font-medium text-neutral-700 hover:text-blue-600 transition-all duration-200 hover:scale-105">Epuyen Congelados</span>
             </Link>
           </div>
 

@@ -5,6 +5,7 @@ import { Inter } from "next/font/google"
 import { usePathname } from "next/navigation"
 import "./globals.css"
 import Header from "@/components/Header"
+import Footer from "@/components/Footer"
 import { AuthProvider } from "@/contexts/AuthContext"
 
 const inter = Inter({
@@ -29,8 +30,9 @@ export default function RootLayout({
     <html lang="es" className={`${inter.variable} antialiased`}>
       <body className="font-sans">
         <AuthProvider>
-          {!isAdminRoute && <Header />} {/* Conditionally render Header */}
+          {!isAdminRoute && <Header />}
           {children}
+          {!isAdminRoute && <Footer />}
         </AuthProvider>
       </body>
     </html>
