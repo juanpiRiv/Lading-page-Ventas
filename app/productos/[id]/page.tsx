@@ -286,7 +286,7 @@ export default function ProductDetailPage() {
                     ))}
                   </div>
                   <p className="text-sm text-neutral-500 mt-1">
-                    {rating.toFixed(1)} ({reviews} reseñas)
+                    {rating.toFixed(1)} ({reviews} reseÃ±as)
                   </p>
                 </div>
               </div>
