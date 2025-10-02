@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Separator } from "@/components/ui/separator"
 import { subscribeToOrder, updateOrder, type Order } from "@/lib/firestore"
 import ProtectedRoute from "@/components/ProtectedRoute"
+import { useAuth } from "@/contexts/AuthContext"
 import {
   calculateOrderTotals,
   getOrderStatusBadgeClasses,
@@ -21,11 +22,22 @@ import {
 export default function AdminOrderDetailPage() {
   const params = useParams<{ id: string }>()
   const router = useRouter()
+  const { user, userProfile } = useAuth()
 
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
 
   const statusSteps = useMemo(() => getOrderStatusSteps("admin"), [])
+  const historyEntries = useMemo(() => {
+    if (!order) return []
+    return [...(order.statusHistory ?? [])].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+  }, [order])
+
+  const formatHistoryDate = (date: Date) =>
+    date.toLocaleString("es-AR", {
+      dateStyle: "short",
+      timeStyle: "short",
+    })
 
   const handleAdvance = async () => {
     if (!order) return
@@ -40,7 +52,17 @@ export default function AdminOrderDetailPage() {
     const next = transitions[order.status]
     if (!next) return
     try {
-      await updateOrder(order.id, { status: next })
+      const note = `Cambio de estado a ${getOrderStatusLabel(next)}`
+      await updateOrder(
+        order.id,
+        { status: next },
+        {
+          previousStatus: order.status,
+          actorId: user?.uid,
+          actorName: userProfile?.displayName ?? user?.email ?? "Administrador",
+          note,
+        },
+      )
     } catch (error) {
       console.error("Error advancing status", error)
       alert("No se pudo actualizar el estado del pedido")
@@ -49,8 +71,25 @@ export default function AdminOrderDetailPage() {
 
   const handleCancel = async () => {
     if (!order || order.status === "delivered") return
+    let note = "Cancelado por el administrador"
+    if (typeof window !== "undefined") {
+      const userNote = window.prompt("Nota para el historial", note)
+      if (userNote === null) {
+        return
+      }
+      note = userNote.trim().length > 0 ? userNote.trim() : note
+    }
     try {
-      await updateOrder(order.id, { status: "cancelled" })
+      await updateOrder(
+        order.id,
+        { status: "cancelled" },
+        {
+          previousStatus: order.status,
+          actorId: user?.uid,
+          actorName: userProfile?.displayName ?? user?.email ?? "Administrador",
+          note,
+        },
+      )
     } catch (error) {
       console.error("Error cancelling order", error)
       alert("No se pudo cancelar el pedido")
@@ -302,6 +341,49 @@ export default function AdminOrderDetailPage() {
             </Card>
           </div>
         </div>
+
+        <Card className="border-0 shadow-lg">
+          <CardHeader className="border-b border-slate-100">
+            <CardTitle className="flex items-center space-x-3">
+              <div className="p-2 bg-blue-50 rounded-xl">
+                <Check size={20} className="text-blue-600" />
+              </div>
+              <span>Historial de cambios</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            {historyEntries.length === 0 ? (
+              <p className="text-slate-500">Sin registros adicionales.</p>
+            ) : (
+              historyEntries.map((entry, index) => (
+                <div
+                  key={`${entry.timestamp.getTime()}-${index}`}
+                  className="p-4 rounded-xl border border-slate-100 bg-slate-50"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-slate-900">
+                      {getOrderStatusLabel(entry.status)}
+                    </span>
+                    <span className="text-xs text-slate-500">{formatHistoryDate(entry.timestamp)}</span>
+                  </div>
+                  <div className="mt-2 text-xs text-slate-600 space-y-1">
+                    {entry.fromStatus ? (
+                      <p>
+                        Cambio desde <strong>{getOrderStatusLabel(entry.fromStatus)}</strong>
+                      </p>
+                    ) : (
+                      <p>Estado inicial del pedido.</p>
+                    )}
+                    {entry.note ? <p>Nota: {entry.note}</p> : null}
+                    {entry.actorName ? (
+                      <p className="text-slate-500">Responsable: {entry.actorName}</p>
+                    ) : null}
+                  </div>
+                </div>
+              ))
+            )}
+          </CardContent>
+        </Card>
       </div>
     </ProtectedRoute>
   )

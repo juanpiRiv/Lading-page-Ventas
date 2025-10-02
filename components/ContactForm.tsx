@@ -83,9 +83,9 @@ export default function ContactForm() {
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-neutral-900 mb-3">Dirección</h3>
-                <p className="text-neutral-600 mb-1">Puerto Madero, CABA</p>
-                <p className="text-neutral-600">Buenos Aires, Argentina</p>
-                <p className="text-sm text-neutral-500 mt-2">Visitas con cita previa</p>
+                <p className="text-neutral-600 mb-1">Victoria, Entre Rios</p>
+                <p className="text-neutral-600">Argentina</p>
+                <p className="text-sm text-neutral-500 mt-2"></p>
               </div>
             </div>
 

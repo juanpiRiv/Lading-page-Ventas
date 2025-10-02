@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
@@ -58,7 +58,7 @@ export default function OrdersListPage() {
   return (
     <div className="min-h-screen bg-neutral-50 py-10">
       <div className="max-w-5xl mx-auto px-4">
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-6  mt-7 flex items-center justify-between">
           <h1 className="text-3xl font-bold text-neutral-900">Mis Pedidos</h1>
           <Link href="/productos">
             <Button variant="outline">Nuevo pedido</Button>
@@ -96,7 +96,7 @@ export default function OrdersListPage() {
                         <p className="font-semibold text-neutral-900">#{order.id.slice(0,8)}</p>
                         <Badge className={`text-xs ${order.statusColor}`}>{order.status}</Badge>
                       </div>
-                      <p className="text-sm text-neutral-600">{order.count} item(s) · {order.date}</p>
+                      <p className="text-sm text-neutral-600">{order.count} item(s) - {order.date}</p>
                     </div>
                     <div className="flex items-center gap-4">
                       <p className="font-bold text-neutral-900">{order.total}</p>

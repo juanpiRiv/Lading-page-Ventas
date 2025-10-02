@@ -11,7 +11,7 @@ import {
   onAuthStateChanged,
   updateProfile,
 } from "firebase/auth"
-import { doc, setDoc, getDoc, Timestamp } from "firebase/firestore" // Import Timestamp
+import { doc, setDoc, getDoc } from "firebase/firestore"
 import { auth, db } from "@/lib/firebase"
 
 export interface UserProfile { // Export UserProfile

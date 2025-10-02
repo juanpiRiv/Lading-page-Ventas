@@ -1,5 +1,6 @@
 import {
   addDoc,
+  arrayUnion,
   collection,
   deleteDoc,
   doc,
@@ -79,6 +80,15 @@ export interface OrderContact {
   preferredDeliveryTime?: string
 }
 
+export interface StatusHistoryEntry {
+  status: OrderStatus
+  fromStatus: OrderStatus | null
+  actorId: string | null
+  actorName: string | null
+  note: string | null
+  timestamp: Date
+}
+
 export interface Order {
   id: string
   userId: string
@@ -90,6 +100,7 @@ export interface Order {
   userDisplayName?: string
   totalAmount: number
   contact?: OrderContact
+  statusHistory: StatusHistoryEntry[]
 }
 
 export interface ProductInput extends Omit<Product, "id" | "createdAt" | "updatedAt"> {
@@ -97,13 +108,14 @@ export interface ProductInput extends Omit<Product, "id" | "createdAt" | "update
   updatedAt?: Date
 }
 
-export interface OrderInput extends Omit<Order, "id" | "createdAt" | "updatedAt"> {
+export interface OrderInput extends Omit<Order, "id" | "createdAt" | "updatedAt" | "statusHistory"> {
   createdAt?: Date
   updatedAt?: Date
 }
 
-export interface OrderUpdate extends Partial<Omit<Order, "id" | "createdAt">> {
+export interface OrderUpdate extends Partial<Omit<Order, "id" | "createdAt" | "statusHistory">> {
   updatedAt?: Date
+  statusHistory?: StatusHistoryEntry[]
 }
 
 const coerceDate = (value: unknown): Date | null => {
@@ -130,6 +142,21 @@ const coerceOptionalString = (value: unknown): string | undefined => {
   if (value === undefined || value === null) return undefined
   const result = String(value).trim()
   return result.length > 0 ? result : undefined
+}
+
+const ORDER_STATUS_VALUES = ["pending", "confirmed", "preparing", "shipped", "delivered", "cancelled"] as const
+
+const isOrderStatus = (value: unknown): value is OrderStatus => {
+  return typeof value === "string" && ORDER_STATUS_VALUES.includes(value as OrderStatus)
+}
+
+const coerceOrderStatus = (value: unknown, fallback: OrderStatus = "pending"): OrderStatus => {
+  return isOrderStatus(value) ? value : fallback
+}
+
+const coerceOptionalOrderStatus = (value: unknown): OrderStatus | null => {
+  if (value === null || value === undefined) return null
+  return isOrderStatus(value) ? value : null
 }
 
 const mapProduct = (id: string, data?: DocumentData | null): Product | null => {
@@ -219,17 +246,39 @@ const mapOrder = (id: string, data?: DocumentData | null): Order | null => {
     }
   })()
 
+  const statusHistory: StatusHistoryEntry[] = Array.isArray(data.statusHistory)
+    ? data.statusHistory.reduce<StatusHistoryEntry[]>((acc, entry) => {
+        if (!entry || typeof entry !== "object") return acc
+        const details = entry as Record<string, unknown>
+        const timestamp = coerceDate(details.timestamp) ?? updatedAt
+        const status = coerceOrderStatus(details.status)
+        const fromStatus = coerceOptionalOrderStatus(details.fromStatus)
+        acc.push({
+          status,
+          fromStatus,
+          actorId: coerceOptionalString(details.actorId) ?? null,
+          actorName: coerceOptionalString(details.actorName) ?? null,
+          note: coerceOptionalString(details.note) ?? null,
+          timestamp,
+        })
+        return acc
+      }, [])
+    : []
+
+  statusHistory.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
+
   return {
     id,
     userId: String(data.userId ?? ""),
     items,
     total: Number(data.total ?? data.totalAmount ?? 0),
-    status: (data.status as OrderStatus) ?? "pending",
+    status: coerceOrderStatus(data.status),
     createdAt,
     updatedAt,
     userDisplayName: data.userDisplayName ?? undefined,
     totalAmount: Number(data.totalAmount ?? data.total ?? 0),
     contact,
+    statusHistory,
   }
 }
 
@@ -397,12 +446,40 @@ export const createOrder = async (data: OrderInput): Promise<string> => {
   return docRef.id
 }
 
-export const updateOrder = async (orderId: string, data: OrderUpdate) => {
+export interface StatusUpdateMetadata {
+  previousStatus?: OrderStatus
+  actorId?: string
+  actorName?: string
+  note?: string
+}
+
+export const updateOrder = async (orderId: string, data: OrderUpdate, metadata?: StatusUpdateMetadata) => {
   const orderRef = doc(db, "orders", orderId)
-  await updateDoc(orderRef, {
+  const basePayload: Record<string, unknown> = {
     ...data,
     updatedAt: serverTimestamp(),
-  })
+  }
+
+  await updateDoc(orderRef, basePayload)
+
+  if (!data.status) return
+
+  const historyEntry = {
+    status: data.status,
+    fromStatus: metadata?.previousStatus ?? null,
+    actorId: metadata?.actorId ?? null,
+    actorName: metadata?.actorName ?? null,
+    note: metadata?.note ?? null,
+    timestamp: serverTimestamp(),
+  }
+
+  try {
+    await updateDoc(orderRef, {
+      statusHistory: arrayUnion(historyEntry),
+    })
+  } catch (error) {
+    console.warn("Unable to append order status history entry:", error)
+  }
 }
 export const logSearchQuery = async (searchTerm: string, userId?: string) => {
   await addDoc(collection(db, "analytics"), {

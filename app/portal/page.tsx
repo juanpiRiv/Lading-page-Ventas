@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
@@ -186,7 +186,7 @@ export default function PortalPage() {
       icon: Phone,
       color: "bg-orange-600 hover:bg-orange-700",
       description: "Contactar ayuda",
-      href: "#contacto",
+      href: "/#contacto",
     },
   ]
 
@@ -199,7 +199,7 @@ export default function PortalPage() {
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h1 className="text-4xl font-bold mb-3">Â¡Bienvenido, {userProfile.displayName}!</h1>
+                <h1 className="text-4xl font-bold mb-3">¡Bienvenido, {userProfile.displayName}!</h1>
                 <p className="text-blue-100 text-lg font-medium mb-4">
                   Gestiona tus pedidos y explora nuestros productos frescos del mar
                 </p>
@@ -577,28 +577,8 @@ export default function PortalPage() {
                     </div>
                   </div>
                   <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="font-semibold text-slate-700">Satisfacción</span>
-                      <span className="font-bold text-blue-600">92%</span>
-                    </div>
-                    <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
-                      <div
-                        className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-1000 ease-out delay-300"
-                        style={{ width: "92%" }}
-                      ></div>
-                    </div>
                   </div>
                   <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="font-semibold text-slate-700">Fidelidad</span>
-                      <span className="font-bold text-purple-600">96%</span>
-                    </div>
-                    <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
-                      <div
-                        className="bg-gradient-to-r from-purple-500 to-purple-600 h-3 rounded-full transition-all duration-1000 ease-out delay-500"
-                        style={{ width: "96%" }}
-                      ></div>
-                    </div>
                   </div>
                 </div>
               </CardContent>

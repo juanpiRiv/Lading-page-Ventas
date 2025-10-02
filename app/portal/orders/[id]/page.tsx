@@ -55,7 +55,17 @@ export default function OrderDetailPage() {
 
   const stepIndex = useMemo(() => (order ? getStatusStepIndex(order.status) : -1), [order])
   const totals = useMemo(() => calculateOrderTotals(order?.items ?? []), [order])
+  const historyEntries = useMemo(() => {
+    if (!order) return []
+    return [...(order.statusHistory ?? [])].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+  }, [order])
   const canCancel = order?.status === "pending"
+
+  const formatHistoryDate = (date: Date) =>
+    date.toLocaleString("es-AR", {
+      dateStyle: "short",
+      timeStyle: "short",
+    })
 
   const handleCancelOrder = async () => {
     if (!order || order.status !== "pending") return
@@ -66,7 +76,16 @@ export default function OrderDetailPage() {
 
     try {
       setIsCancelling(true)
-      await updateOrder(order.id, { status: "cancelled" })
+      await updateOrder(
+        order.id,
+        { status: "cancelled" },
+        {
+          previousStatus: order.status,
+          actorId: user?.uid,
+          actorName: userProfile?.displayName ?? user?.email ?? "Cliente",
+          note: "Cancelado por el cliente desde el portal",
+        },
+      )
       if (typeof window !== "undefined") {
         window.alert("Tu pedido fue cancelado.")
       }
@@ -196,6 +215,44 @@ export default function OrderDetailPage() {
               <span>Total</span>
               <span>${totals.total.toLocaleString("es-AR")}</span>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
+          <CardHeader>
+            <CardTitle>Historial de cambios</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            {historyEntries.length === 0 ? (
+              <p className="text-neutral-500">Sin registros adicionales.</p>
+            ) : (
+              historyEntries.map((entry, index) => (
+                <div
+                  key={`${entry.timestamp.getTime()}-${index}`}
+                  className="p-4 rounded-xl border border-neutral-100 bg-neutral-50"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="font-semibold text-neutral-900">
+                      {getOrderStatusLabel(entry.status)}
+                    </div>
+                    <span className="text-xs text-neutral-500">{formatHistoryDate(entry.timestamp)}</span>
+                  </div>
+                  <div className="mt-2 text-xs text-neutral-600 space-y-1">
+                    {entry.fromStatus ? (
+                      <p>
+                        Cambio desde <strong>{getOrderStatusLabel(entry.fromStatus)}</strong>
+                      </p>
+                    ) : (
+                      <p>Estado inicial del pedido.</p>
+                    )}
+                    {entry.note ? <p>Nota: {entry.note}</p> : null}
+                    {entry.actorName ? (
+                      <p className="text-neutral-500">Responsable: {entry.actorName}</p>
+                    ) : null}
+                  </div>
+                </div>
+              ))
+            )}
           </CardContent>
         </Card>
       </div>

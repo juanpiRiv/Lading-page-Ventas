@@ -1,78 +1,90 @@
-"use client"
+﻿"use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
 import ProtectedRoute from "@/components/ProtectedRoute"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Eye, CheckCircle, XCircle, Truck, MapPin, Phone, Mail, User, Package, Check } from "lucide-react"
+import { ArrowLeft, Eye, CheckCircle, XCircle, Truck } from "lucide-react"
 import { type Order, subscribeToOrders, updateOrder } from "@/lib/firestore"
 import { getOrderStatusBadgeClasses, getOrderStatusLabel } from "@/lib/orders/utils"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 
-const ORDER_STATUS_STEPS: Array<{ value: Order["status"]; label: string; description: string }> = [
-  {
-    value: "pending",
-    label: "Pendiente",
-    description: "Pedido recibido y a la espera de confirmacion.",
-  },
-  {
-    value: "confirmed",
-    label: "Confirmado",
-    description: "Pedido confirmado por el equipo comercial.",
-  },
-  {
-    value: "preparing",
-    label: "Preparando",
-    description: "Preparando productos para despacho.",
-  },
-  {
-    value: "shipped",
-    label: "En transito",
-    description: "Pedido enviado y en camino al cliente.",
-  },
-  {
-    value: "delivered",
-    label: "Entregado",
-    description: "Pedido entregado al cliente.",
-  },
+const FILTER_OPTIONS: Array<{ key: "all" | "7" | "30" | "90"; label: string }> = [
+  { key: "all", label: "Todas" },
+  { key: "7", label: "Ultimos 7 dias" },
+  { key: "30", label: "Ultimos 30 dias" },
+  { key: "90", label: "Ultimos 90 dias" },
 ]
 
 export default function AdminOrdersPage() {
-  const { userProfile } = useAuth()
+  const { user, userProfile } = useAuth()
   const router = useRouter()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
+  const [dateFilter, setDateFilter] = useState<"all" | "7" | "30" | "90">("all")
 
   useEffect(() => {
-    if (userProfile?.role === "admin") {
-      const unsubscribe = subscribeToOrders((fetchedOrders) => {
-        setOrders(fetchedOrders)
-        setLoading(false)
-      })
-      return () => unsubscribe()
-    } else {
+    if (userProfile?.role !== "admin") {
       setLoading(false)
+      return
     }
+
+    const unsubscribe = subscribeToOrders((fetchedOrders) => {
+      setOrders(fetchedOrders)
+      setLoading(false)
+    })
+
+    return () => unsubscribe()
   }, [userProfile])
 
   const handleUpdateOrderStatus = async (orderId: string, newStatus: Order["status"]) => {
     try {
-      await updateOrder(orderId, { status: newStatus })
-      // The subscription will automatically update the state
+      const targetOrder = orders.find((item) => item.id === orderId)
+      if (!targetOrder) {
+        throw new Error("Pedido no encontrado en la lista actual")
+      }
+
+      let note = `Cambio de estado a ${getOrderStatusLabel(newStatus)}`
+      if (newStatus === "cancelled" && typeof window !== "undefined") {
+        const userNote = window.prompt("Nota para la cancelacion", note)
+        if (userNote === null) {
+          return
+        }
+        note = userNote.trim().length > 0 ? userNote.trim() : note
+      }
+
+      await updateOrder(
+        orderId,
+        { status: newStatus },
+        {
+          previousStatus: targetOrder.status,
+          actorId: user?.uid,
+          actorName: userProfile?.displayName ?? user?.email ?? "Administrador",
+          note,
+        },
+      )
     } catch (error) {
       console.error("Error updating order status:", error)
       alert("Error al actualizar el estado del pedido.")
     }
   }
 
+  const filteredOrders = useMemo(() => {
+    if (dateFilter === "all") return orders
+    const days = Number(dateFilter)
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - days)
+    return orders.filter((order) => order.createdAt >= cutoff)
+  }, [orders, dateFilter])
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        Cargando órdenes...
+        Cargando ordenes...
       </div>
     )
   }
@@ -83,15 +95,31 @@ export default function AdminOrdersPage() {
         <Button variant="outline" onClick={() => router.push("/admin")} className="mb-6">
           <ArrowLeft className="mr-2 h-4 w-4" /> Volver al Panel
         </Button>
-        <h1 className="text-4xl font-bold mb-8">Gestión de Órdenes</h1>
+
+        <div className="mb-6 flex flex-wrap gap-2">
+          {FILTER_OPTIONS.map((option) => (
+            <Button
+              key={option.key}
+              variant={dateFilter === option.key ? "default" : "outline"}
+              size="sm"
+              onClick={() => setDateFilter(option.key)}
+            >
+              {option.label}
+            </Button>
+          ))}
+        </div>
+
+        <h1 className="text-4xl font-bold mb-8">Gestion de Ordenes</h1>
 
         <Card>
           <CardHeader>
-            <CardTitle>Listado de Órdenes</CardTitle>
+            <CardTitle>Listado de Ordenes</CardTitle>
           </CardHeader>
           <CardContent>
             {orders.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">No hay órdenes para mostrar.</p>
+              <p className="text-center text-muted-foreground py-8">No hay ordenes para mostrar.</p>
+            ) : filteredOrders.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">No hay ordenes en el periodo seleccionado.</p>
             ) : (
               <Table>
                 <TableHeader>
@@ -105,7 +133,7 @@ export default function AdminOrdersPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {orders.map((order) => (
+                  {filteredOrders.map((order) => (
                     <TableRow key={order.id}>
                       <TableCell className="font-medium">{order.id.slice(0, 8)}</TableCell>
                       <TableCell>{order.userDisplayName || "N/A"}</TableCell>
@@ -113,27 +141,9 @@ export default function AdminOrdersPage() {
                       <TableCell>${order.totalAmount.toLocaleString()}</TableCell>
                       <TableCell>
                         <span
-                          className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                            order.status === "delivered"
-                              ? "bg-green-100 text-green-700"
-                              : order.status === "shipped"
-                                ? "bg-blue-100 text-blue-700"
-                                : order.status === "confirmed"
-                                  ? "bg-purple-100 text-purple-700"
-                                  : order.status === "preparing"
-                                    ? "bg-yellow-100 text-yellow-700"
-                                    : "bg-gray-100 text-gray-700"
-                          }`}
+                          className={`px-2 py-1 rounded-full text-xs font-semibold ${getOrderStatusBadgeClasses(order.status)}`}
                         >
-                          {order.status === "delivered"
-                            ? "Entregado"
-                            : order.status === "shipped"
-                              ? "En tránsito"
-                              : order.status === "confirmed"
-                                ? "Confirmado"
-                                : order.status === "preparing"
-                                  ? "Preparando"
-                                  : "Pendiente"}
+                          {getOrderStatusLabel(order.status)}
                         </span>
                       </TableCell>
                       <TableCell className="text-right">
@@ -177,3 +187,8 @@ export default function AdminOrdersPage() {
     </ProtectedRoute>
   )
 }
+
+
+
+
+

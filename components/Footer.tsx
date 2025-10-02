@@ -26,7 +26,7 @@ export default function Footer() {
     servicios: [
       { name: "Distribución Nacional", href: "#" },
       { name: "Carrito de Compras", href: "/carrito" },
-      { name: "Soporte Técnico", href: "#contacto" },
+      { name: "Soporte Técnico", href: "/#contacto" },
       { name: "Términos y Condiciones", href: "#" },
     ],
   }
@@ -63,7 +63,7 @@ export default function Footer() {
               </div>
               <div className="flex items-center space-x-3 text-neutral-400">
                 <MapPin className="w-4 h-4" />
-                <span>Puerto Madero, CABA</span>
+                <span>Victoria, Entre Rios</span>
               </div>
             </div>
 
@@ -71,10 +71,6 @@ export default function Footer() {
               <div className="flex items-center space-x-2 bg-neutral-800 px-3 py-2 rounded-lg">
                 <Award className="w-4 h-4 text-green-400" />
                 <span className="text-xs font-medium">SENASA</span>
-              </div>
-              <div className="flex items-center space-x-2 bg-neutral-800 px-3 py-2 rounded-lg">
-                <Award className="w-4 h-4 text-blue-400" />
-                <span className="text-xs font-medium">HACCP</span>
               </div>
             </div>
 
