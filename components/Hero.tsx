@@ -7,10 +7,10 @@ export default function Hero() {
     <section id="inicio" className="relative min-h-screen flex items-center justify-center overflow-hidden">
       <div className="absolute inset-0 z-0">
         <Image
-          src="/slide-29.jpg"
+          src="/logo3.jpg"
           alt="Mar argentino con barcos pesqueros"
           fill
-          className="object-center"
+          className="object-cover"
           priority
         />
         <div className="absolute inset-0 bg-gradient-to-br from-blue-200/70 via-blue-800/50 to-blue-300/60"></div>
@@ -19,9 +19,9 @@ export default function Hero() {
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <div className="max-w-4xl mx-auto animate-fade-in-up">
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-red-600/80 mb-6 text-balance leading-tight">
-            Frigorifico
-            <span className="block text-red-600/80">Epuyen</span>
-          </h1>
+              Distribuidora
+            <span className="block text-red-600/80">Peces</span>
+          </h1> 
           <p className="text-xl md:text-2xl text-blue-100 font-extrabold mb-8 drop-shadow-xl ">Del mar y río a tu mesa</p>
           <p className="text-lg text-blue-100 font-extrabold mb-12 max-w-2xl mx-auto text-pretty leading-relaxed drop-shadow-xl">
             Distribuimos pescados y derivados de la más alta calidad a todas las provincias argentinas con certificación
