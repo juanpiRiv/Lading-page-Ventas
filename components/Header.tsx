@@ -22,14 +22,14 @@ export default function Header() {
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-3 group">
               <Image
-                src="/epuyen-logo.png"
+                src="/shopping-cart.svg"
                 alt="Epuyen Congelados"
-                width={40}
-                height={40}
-                className="h-17 w-auto object-contain transition-transform group-hover:scale-105"
+                width={20}
+                height={20}
+                className="h-14 w-auto object-contain transition-transform group-hover:scale-105"
                 priority
               />
-              <span className="flex items-center space-x-2 px-3 py-2 rounded-lg font-medium text-neutral-700 hover:text-blue-600 transition-all duration-200 hover:scale-105">Epuyen Congelados</span>
+              <span className="flex items-center space-x-2 px-3 py-2 rounded-lg font-medium text-neutral-700 hover:text-blue-600 transition-all duration-200 hover:scale-105">Distribuidora Peces</span>
             </Link>
           </div>
 

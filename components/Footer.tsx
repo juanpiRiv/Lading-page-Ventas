@@ -38,14 +38,14 @@ export default function Footer() {
           <div className="lg:col-span-2">
             <div className="flex items-center space-x-4 mb-6">
               <Image
-                src="/epuyen-logo.png"
+                src="/shopping-cart.svg"
                 alt="Epuyen Congelados"
                 width={76}
                 height={76}
                 className="h-24 w-auto object-contain"
                 priority
               />
-              <span className="text-xl font-semibold">Epuyen Congelados</span>
+              <span className="text-xl font-semibold">Distribuidora Peces</span>
             </div>
             <p className="text-neutral-400 mb-8 text-pretty leading-relaxed">
               Distribuidores especializados en pescados y derivados para todo el país. Calidad y frescura garantizada
